@@ -1,9 +1,9 @@
 # Virex
 
-## Railway
-Create a Railway PostgreSQL service, set the variables from `.env.example`, and deploy from `main`. The release command runs `alembic upgrade head` before the single Telegram polling worker starts. Do not horizontally scale polling workers.
+## Deploy on Railway
+Create a PostgreSQL service, deploy this repository, and configure every variable in `.env.example` in Railway Variables. The start command runs `alembic upgrade head && python main.py`. Run exactly one polling worker; horizontal scaling causes duplicate Telegram updates.
 
-## Operations
-All money changes go through `WalletService.apply`, which locks the wallet with PostgreSQL `SELECT FOR UPDATE`, writes an idempotent ledger entry, and enforces non-negative balance both in code and with a database constraint. Top-ups, purchases, and refunds are idempotent. Config values are unique and assignment is locked with `FOR UPDATE SKIP LOCKED`.
+## Guarantees
+All balance mutations use `WalletService.apply`, PostgreSQL `SELECT FOR UPDATE`, an idempotency key, `Decimal`, and a database non-negative constraint. Top-up approval/rejection locks the request and ignores already-decided requests. Purchases lock the product and reserve one unassigned config with `FOR UPDATE SKIP LOCKED`; product price is read from the database in the same transaction. Refunds are idempotent through the ledger key.
 
-Run locally with Python 3.11+, PostgreSQL, `pip install -r requirements.txt`, `alembic upgrade head`, then `python main.py`. Run tests with `pytest -q`.
+Run: `pip install -r requirements.txt`, `alembic upgrade head`, `python main.py`. Tests: `pytest -q`.
