@@ -1,16 +1,9 @@
 # Virex
 
-Production-oriented Telegram shop with an async PostgreSQL wallet ledger, top-up moderation, products, orders, configs, refunds, and Railway deployment support.
+## Railway
+Create a Railway PostgreSQL service, set the variables from `.env.example`, and deploy from `main`. The release command runs `alembic upgrade head` before the single Telegram polling worker starts. Do not horizontally scale polling workers.
 
-## Setup
-```bash
-cp .env.example .env
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-alembic upgrade head
-python main.py
-```
+## Operations
+All money changes go through `WalletService.apply`, which locks the wallet with PostgreSQL `SELECT FOR UPDATE`, writes an idempotent ledger entry, and enforces non-negative balance both in code and with a database constraint. Top-ups, purchases, and refunds are idempotent. Config values are unique and assignment is locked with `FOR UPDATE SKIP LOCKED`.
 
-Set all values in `.env`; never commit secrets. Use one Railway polling worker only. See `.env.example` and `railway.toml` for deployment configuration.
-
-Financial mutations are centralized in `WalletService`, use `Decimal`, idempotency keys, and PostgreSQL row locks. Prices are copied into orders at payment time from the database product row.
+Run locally with Python 3.11+, PostgreSQL, `pip install -r requirements.txt`, `alembic upgrade head`, then `python main.py`. Run tests with `pytest -q`.
