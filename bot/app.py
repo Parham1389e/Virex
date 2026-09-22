@@ -11,7 +11,7 @@ from services.orders import OrderService
 from services.topups import TopUpService
 
 AMOUNT, RECEIPT, REJECT_REASON = range(3)
-def is_admin(update): return update.effective_user and update.effective_user.id in settings.admin_ids
+def is_admin(update): return update.effective_user and settings.is_admin(update.effective_user.id)
 async def get_user(session, tg):
     user=await session.scalar(select(User).where(User.telegram_id==tg.id))
     if user is None:
