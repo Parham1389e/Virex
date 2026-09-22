@@ -1,9 +1,28 @@
 # Virex
 
-## Deploy on Railway
-Create a PostgreSQL service, deploy this repository, and configure every variable in `.env.example` in Railway Variables. The start command runs `alembic upgrade head && python main.py`. Run exactly one polling worker; horizontal scaling causes duplicate Telegram updates.
+## Railway deployment
+Create a Railway PostgreSQL service and deploy the `main` branch. Set exactly these Variables:
 
-## Guarantees
-All balance mutations use `WalletService.apply`, PostgreSQL `SELECT FOR UPDATE`, an idempotency key, `Decimal`, and a database non-negative constraint. Top-up approval/rejection locks the request and ignores already-decided requests. Purchases lock the product and reserve one unassigned config with `FOR UPDATE SKIP LOCKED`; product price is read from the database in the same transaction. Refunds are idempotent through the ledger key.
+- `BOT_TOKEN`: Telegram bot token
+- `ADMIN_IDS`: comma-separated Telegram numeric IDs
+- `DATABASE_URL`: Railway PostgreSQL connection URL
+- `CARD_NUMBER`: destination card number
+- `CARD_OWNER`: card holder name
+- `SUPPORT_CONTACT`: support username or contact text
+- `RECEIPT_MAX_BYTES`: optional, default 5242880
+- `ENVIRONMENT`: `production`
+- `LOG_LEVEL`: `INFO`
 
-Run: `pip install -r requirements.txt`, `alembic upgrade head`, `python main.py`. Tests: `pytest -q`.
+Railway runs `alembic upgrade head && python main.py`. Run one polling worker only; do not horizontally scale it. Never commit `.env` or secrets.
+
+## Local commands
+```bash
+python -m venv .venv
+pip install -r requirements.txt
+cp .env.example .env
+alembic upgrade head
+python main.py
+pytest -q
+```
+
+Receipt uploads are downloaded through Telegram, size-checked, MIME-checked, persisted by Telegram file ID, and forwarded to every configured admin. Top-up decisions lock the row and are idempotent. Purchases lock wallet/product/config rows and refund the transaction on failure. Telegram delivery is only marked after send succeeds.

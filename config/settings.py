@@ -6,12 +6,16 @@ class Settings(BaseSettings):
     database_url: str
     admin_ids: list[int] = []
     card_number: str = Field(min_length=4)
-    card_holder: str = Field(min_length=2)
+    card_owner: str = Field(min_length=2, validation_alias="CARD_OWNER")
+    support_contact: str = ""
     receipt_max_bytes: int = Field(default=5 * 1024 * 1024, ge=1024, le=20 * 1024 * 1024)
     receipt_mime_types: list[str] = ["image/jpeg", "image/png", "application/pdf"]
     environment: str = "development"
     log_level: str = "INFO"
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", populate_by_name=True)
+
+    @property
+    def card_holder(self) -> str: return self.card_owner
 
     @field_validator("database_url")
     @classmethod
